@@ -1,0 +1,111 @@
+---
+title: "Explore transcript types"
+output: html_notebook
+---
+
+
+```{r}
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(ggpubr)
+library(VennDiagram)
+```
+
+
+
+```{r}
+txtbl <- fread('hg38c_txtable.tsv')
+txtbl <- txtbl[chr!='chrM']
+keepcodes <- unlist(strsplit("c=kjmno",''))
+setnames(txtbl, c('tid', 'name', 'gbkey'), c('ref_id','txid','txtype'))
+txtbl[, predicted:=grepl('^X', txid)]
+
+## -- load a set
+## loadtmap returns a list (tmap=dt, tnum=txcount)
+loadtmap <- function (file=NULL) {
+  tmap <- fread(file)
+  tnum <- nrow(tmap)
+  tmap <- tmap[ref_id!='-' & class_code %in% keepcodes]
+  tmap[txtbl, `:=` (txid=i.txid, txtype=i.txtype, biotype=i.gene_biotype, 
+                    gene_name=i.gene_name, predicted=i.predicted), on=.(ref_id) ]
+  #'misc_RNA' is how GenBank labels 'ncRNA' transcripts from a 'protein_coding' gene
+  stopifnot(all.equal(tmap[txtype=='misc_RNA'], 
+                       tmap[grepl('^[NX]R_', txid) & biotype=='protein_coding'])==T)
+  tmap[txtype=='misc_RNA', txtype:='ncRNA']
+  ## contingency table: predicted x coding for matching 
+  tpred <- as.data.table(table(tmap[class_code=='=']$predicted))
+  colnames(tpred) <- c('predicted', 'count')
+  tcod <- as.data.table(table(tmap[class_code=='=']$txtype))
+  colnames(tcod) <- c('coding', 'count')
+  tcod[, coding:=(coding=='mRNA')]
+                         
+  list(tmap=tmap, tnum=tnum, tcod=tcod, tpred=tpred)
+}
+
+```
+
+```{r}
+#must be in this order: short, long, mix
+
+genbarPlots <- function(files=NULL) {
+  sd <- loadtmap(files[1])
+  ld <- loadtmap(files[2])
+  md <- loadtmap(files[3])
+
+  dpred <- rbindlist(list(sd$tpred[, assembly:='Short'], ld$tpred[, assembly:='Long'], md$tpred[, assembly:='Hybrid']))
+  dpred$assembly <- factor(dpred$assembly, levels=c('Short', 'Long', 'Hybrid'))
+  dpred[, cvar:=paste0(substr(assembly, start=1, stop=1), ifelse(predicted, 'T', 'F')) ]
+  dpred[order(count), yp:=cumsum(count), by=assembly] #[predicted==F, yp:=yp-600]
+
+  dcod <- rbindlist(list(sd$tcod[, assembly:='Short'], ld$tcod[, assembly:='Long'], md$tcod[, assembly:='Hybrid']))
+  dcod$assembly <- factor(dcod$assembly, levels=c('Short', 'Long', 'Hybrid'))
+  dcod[, cvar:=paste0(substr(assembly, start=1, stop=1), ifelse(coding, 'F', 'T')) ]
+  dcod[order(count), yp:=cumsum(count), by=assembly]
+  
+  ylim=c(0, 28000)
+  
+  colors=c('SF'= "#e34031", 'ST'= "#ff7061", 'LF'="#2748f3", 'LT'="#5778ff",'HF'="#9a22df", 'HT'="#ca42ef")
+  gpred <- 
+    ggplot(dpred, aes(fill=cvar, y=count, x=assembly)) +
+    geom_bar(position="stack", stat="identity") + # ggtitle("computationally predicted status")+
+    geom_label(aes(label=yp, y=yp, fill=cvar), label.size=NA, vjust=0.4, color="white", size=3)+
+    coord_cartesian(ylim = ylim) +
+    scale_y_continuous(expand = expansion(add=c(0,0)), breaks=seq(0, 20000, 5000)) +
+    scale_fill_manual(values=colors) +
+    theme_bw() + xlab(NULL) + ylab(NULL) +
+    theme(panel.border = element_blank(), axis.line = element_line(colour = "gray80"),
+          panel.grid.minor = element_blank(), legend.position = "none")
+  
+  
+  gcod <- ggplot(dcod, aes(fill=cvar, y=count, x=assembly)) +
+    geom_bar(position="stack", stat="identity") + # ggtitle("protein coding status")+
+    geom_label(aes(label=yp, y=yp, fill=cvar), label.size=NA, vjust=0.4, color="white", size=3)+
+    coord_cartesian(ylim = ylim) +
+    scale_y_continuous(expand = expansion(add=c(0,0)), breaks=seq(0, 20000, 5000)) +
+    scale_fill_manual(values=colors) +
+    theme_bw() + xlab(NULL) + ylab(NULL) +
+    theme(panel.border = element_blank(), axis.line = element_line(colour = "gray80"),
+          panel.grid.minor = element_blank(), legend.position = "none")
+ list(gcod=gcod, gpred=gpred)
+}
+```
+
+
+```{r}
+#library(ggpattern)
+
+options(repr.plot.width = 10, repr.plot.height = 6)
+
+tmapfiles <- c('SRR16071313_short.tmap', 'SRR16071311_long.tmap', 'SRR16071313_SRR16071311_mix.tmap')
+
+g1 <- genbarPlots(tmapfiles)
+
+g2 <- genbarPlots(c('all_merged_short.tmap', 'all_merged_long.tmap', 'all_merged_mix.tmap'))
+
+fig <- ggarrange(g1$gpred, g1$gcod, g2$gpred, g2$gcod, labels=c("A", "B", "C", "D"),
+                 vjust = 0.3, ncol=2, nrow = 2)+theme(plot.margin = margin(t=0.4, unit="cm"))
+fig
+```
+
+

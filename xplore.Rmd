@@ -26,9 +26,10 @@ txtbl[, predicted:=grepl('^X', txid)]
 loadtmap <- function (file=NULL) {
   tmap <- fread(file)
   tnum <- nrow(tmap)
-  tmap <- tmap[ref_id!='-' & class_code %in% keepcodes]
+  tmap <- tmap[ref_id!='-' & class_code %in% keepcodes ]
   tmap[txtbl, `:=` (txid=i.txid, txtype=i.txtype, biotype=i.gene_biotype, 
                     gene_name=i.gene_name, predicted=i.predicted), on=.(ref_id) ]
+  tmap <- tmap[!is.na(txid)]
   #'misc_RNA' is how GenBank labels 'ncRNA' transcripts from a 'protein_coding' gene
   stopifnot(all.equal(tmap[txtype=='misc_RNA'], 
                        tmap[grepl('^[NX]R_', txid) & biotype=='protein_coding'])==T)
@@ -52,7 +53,23 @@ genbarPlots <- function(files=NULL) {
   sd <- loadtmap(files[1])
   ld <- loadtmap(files[2])
   md <- loadtmap(files[3])
+  stm <- sd$tmap[class_code=='=']
+  ltm <- ld$tmap[class_code=='=']
+  mtm <- md$tmap[class_code=='=']
+  
+  mtpred=mtm[predicted==T]$txid
+  stpred=stm[predicted==T]$txid
+  ltpred=ltm[predicted==T]$txid
 
+  mtcod=mtm[txtype=='mRNA']$txid
+  stcod=stm[txtype=='mRNA']$txid
+  ltcod=ltm[txtype=='mRNA']$txid
+  mtnc=mtm[txtype!='mRNA']$txid
+  stnc=stm[txtype!='mRNA']$txid
+  ltnc=ltm[txtype!='mRNA']$txid
+
+  
+    
   dpred <- rbindlist(list(sd$tpred[, assembly:='Short'], ld$tpred[, assembly:='Long'], md$tpred[, assembly:='Hybrid']))
   dpred$assembly <- factor(dpred$assembly, levels=c('Short', 'Long', 'Hybrid'))
   dpred[, cvar:=paste0(substr(assembly, start=1, stop=1), ifelse(predicted, 'T', 'F')) ]
@@ -77,7 +94,8 @@ genbarPlots <- function(files=NULL) {
     theme(panel.border = element_blank(), axis.line = element_line(colour = "gray80"),
           panel.grid.minor = element_blank(), legend.position = "none")
   
-  
+  venn=
+    
   gcod <- ggplot(dcod, aes(fill=cvar, y=count, x=assembly)) +
     geom_bar(position="stack", stat="identity") + # ggtitle("protein coding status")+
     geom_label(aes(label=yp, y=yp, fill=cvar), label.size=NA, vjust=0.4, color="white", size=3)+
@@ -87,6 +105,7 @@ genbarPlots <- function(files=NULL) {
     theme_bw() + xlab(NULL) + ylab(NULL) +
     theme(panel.border = element_blank(), axis.line = element_line(colour = "gray80"),
           panel.grid.minor = element_blank(), legend.position = "none")
+  
  list(gcod=gcod, gpred=gpred)
 }
 ```

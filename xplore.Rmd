@@ -8,8 +8,10 @@ output: html_notebook
 library(dplyr)
 library(data.table)
 library(ggplot2)
+library(gridExtra)
 library(ggpubr)
 library(VennDiagram)
+#library(eulerr)
 ```
 
 
@@ -44,12 +46,77 @@ loadtmap <- function (file=NULL) {
   list(tmap=tmap, tnum=tnum, tcod=tcod, tpred=tpred)
 }
 
+drawVenn <- function(s3, names=NULL) {
+  if (!is.null(names)) names(s3) <- names
+  #myCol <- c("#ABB5E890", "#E8ABB590", "#E280E290")
+  myCol <- c("#4B45E880", "#F84B4580", "#b240c280")
+  #myEdgeCol <- c("#ABB5E8ff", "#E8ABB5ff", "#E280E2ff")
+  myEdgeCol <- c("#aBa5ff", "#f88484", "#b2a0d2")
+  mylcol <- c("#4B45E8", "#E84B45ff", "#b040B0ff")
+  venn.diagram(x=s3,
+         #category.names = c("Long", "Short", "Hybrid"),
+         #filename = "venn1_tm.png",
+         filename = NULL,
+         output=T,
+         height = 2.3, 
+         width = 2.3, 
+         units = "in",
+         dpi = 72,
+         compression = "lzw",
+         # Circles
+        fill = myCol, lwd=1, lty='solid', col=myEdgeCol, #lwd = 2, lty = 'blank', 
+         # Numbers
+        cex = 0.7, fontface = "bold", fontfamily = "sans",
+        # Set names
+        cat.cex = 0.8, cat.fontface = "bold",
+        cat.col = mylcol,
+        cat.default.pos = "outer",
+        cat.pos = c(-37, 37, 128),
+        cat.dist = c(0.098, 0.098, 0.1),
+        cat.fontfamily = "sans",
+        rotation = 1,
+        margin = 0.14
+  )
+}
+```
+
+```{r}
+  myCol <- c("#4B45E880", "#F84B4580", "#b240c280")
+  #myEdgeCol <- c("#ABB5E8ff", "#E8ABB5ff", "#E280E2ff")
+  myEdgeCol <- c("#aBa5ff", "#f88484", "#b2a0d2")
+  mylcol <- c("#4B45E8", "#E84B45ff", "#b040B0ff")
+  g <- venn.diagram(x=s3,
+         #category.names = c("Long", "Short", "Hybrid"),
+         #filename = "venn1_tm.png",
+         filename = NULL,
+         output=T,
+         height = 2.3, 
+         width = 2.3, 
+         units = "in",
+         dpi = 72,
+         compression = "lzw",
+         # Circles
+        fill = myCol, lwd=1, lty='solid', col=myEdgeCol, #lwd = 2, lty = 'blank', 
+         # Numbers
+        cex = 0.7, fontface = "bold", fontfamily = "sans",
+        # Set names
+        cat.cex = 0.8, cat.fontface = "bold",
+        cat.col = mylcol,
+        cat.default.pos = "outer",
+        cat.pos = c(-37, 37, 128),
+        cat.dist = c(0.098, 0.098, 0.1),
+        cat.fontfamily = "sans",
+        rotation = 1,
+        margin = 0.14
+  )
+grid.draw(g)
+# save image as 212 by 160
 ```
 
 ```{r}
 #must be in this order: short, long, mix
-
-genbarPlots <- function(files=NULL) {
+files <- c('SRR16071313_short.tmap', 'SRR16071311_long.tmap', 'SRR16071313_SRR16071311_mix.tmap')
+#genbarPlots <- function(files=NULL) {
   sd <- loadtmap(files[1])
   ld <- loadtmap(files[2])
   md <- loadtmap(files[3])
@@ -57,41 +124,35 @@ genbarPlots <- function(files=NULL) {
   ltm <- ld$tmap[class_code=='=']
   mtm <- md$tmap[class_code=='=']
   
-  mtpred=mtm[predicted==T]$txid
-  stpred=stm[predicted==T]$txid
-  ltpred=ltm[predicted==T]$txid
-  mtcod=mtm[txtype=='mRNA']$txid
-  stcod=stm[txtype=='mRNA']$txid
-  ltcod=ltm[txtype=='mRNA']$txid
-  mtnc=mtm[txtype!='mRNA']$txid
-  stnc=stm[txtype!='mRNA']$txid
-  ltnc=ltm[txtype!='mRNA']$txid
+  mtpred=unique(mtm[predicted==T]$txid)
+  stpred=unique(stm[predicted==T]$txid)
+  ltpred=unique(ltm[predicted==T]$txid)
+  mtcod=unique(mtm[txtype=='mRNA']$txid)
+  stcod=unique(stm[txtype=='mRNA']$txid)
+  ltcod=unique(ltm[txtype=='mRNA']$txid)
+  mtnc=unique(mtm[txtype!='mRNA']$txid)
+  stnc=unique(stm[txtype!='mRNA']$txid)
+  ltnc=unique(ltm[txtype!='mRNA']$txid)
 
   #library(RColorBrewer)
   #myCol <- brewer.pal(3, "Pastel2")
-  myCol <- c("#ABB5E890", "#FFA28C90", "#E280E290")
-  myEdgeCol <- c("#ABB5E8ff", "#FFA28Cff", "#E280E2ff")
-  venn.diagram(x=list(ltm$txid, stm$txid, mtm$txid),
-         category.names = c("Long", "Short", "Hybrid"),
-         filename = "venn1_tm.png",
-         output=T,
-         height = 640 , 
-         width = 640 , 
-         resolution = 300,
-         compression = "lzw",
-         # Circles
-        lwd = 2, fill = myCol, col=myEdgeCol, #lty = 'blank', 
-         # Numbers
-        cex = .6, fontface = "bold", fontfamily = "sans",
-        # Set names
-        cat.cex = 0.6, cat.fontface = "bold",
-        cat.default.pos = "outer",
-        cat.pos = c(-27, 27, 135),
-        cat.dist = c(0.055, 0.055, 0.085),
-        cat.fontfamily = "sans",
-        rotation = 1
-  )
-    
+  #rm(overrideTriple)
+  snames=c("Long", "Short", "Hybrid")
+  #s3 <- list(unique(ltm$txid), unique(stm$txid), unique(mtm$txid))
+  #vall <- drawVenn(s3, snames)
+
+  s3 <- list(ltcod, stcod, mtcod)
+  vcod <- drawVenn(s3, snames)
+  s3 <- list(ltnc, stnc, mtnc)
+  vncod <- drawVenn(s3, snames)
+  s3 <- list(ltpred, stpred, mtpred)
+  vpred <- drawVenn(s3, snames)
+  ag <- arrangeGrob(grobs=list(gTree(children=vcod), gTree(children=vncod),    
+                          gTree(children=vpred)), nrow=1, ncol=3, bottom="")
+  #grid.draw(ag) 
+  ggsave(ag, file="my_plot.svg", width=6.9, height=2.3, device="svg")
+  
+ stop("stop here for now")  
   dpred <- rbindlist(list(sd$tpred[, assembly:='Short'], ld$tpred[, assembly:='Long'], md$tpred[, assembly:='Hybrid']))
   dpred$assembly <- factor(dpred$assembly, levels=c('Long','Short', 'Hybrid'))
   dpred[, cvar:=paste0(substr(assembly, start=1, stop=1), ifelse(predicted, 'T', 'F')) ]
@@ -159,7 +220,7 @@ gg <-
     
     
  list(gcod=gcod, gpred=gpred)
-}
+#}
 ```
 
 
@@ -167,7 +228,7 @@ gg <-
 #library(ggpattern)
 
 options(repr.plot.width = 10, repr.plot.height = 6)
-
+#overrideTriple =  T
 tmapfiles <- c('SRR16071313_short.tmap', 'SRR16071311_long.tmap', 'SRR16071313_SRR16071311_mix.tmap')
 
 g1 <- genbarPlots(tmapfiles)

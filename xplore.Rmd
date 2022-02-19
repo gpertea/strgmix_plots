@@ -103,41 +103,12 @@ drawVenn <- function(s3, names=NULL, title=NULL) {
 ```{r}
 #must be in this order: short, long, mix
 files <- c('SRR16071313_short.tmap', 'SRR16071311_long.tmap', 'SRR16071313_SRR16071311_mix.tmap')
-genbarPlots <- function(files=NULL, startLetter='A') {
+showLegend=T
+genbarPlots <- function(files=NULL, showLegend=T) {
   sd <- loadtmap(files[1])
   ld <- loadtmap(files[2])
   md <- loadtmap(files[3])
   
-  #stm <- sd$tmap[class_code=='=']
-  #ltm <- ld$tmap[class_code=='=']
-  #mtm <- md$tmap[class_code=='=']
-  
-#  mtpred=unique(mtm[predicted==T]$txid)
-#  stpred=unique(stm[predicted==T]$txid)
-#  ltpred=unique(ltm[predicted==T]$txid)
-#  mtcod=unique(mtm[txtype=='mRNA']$txid)
-#  stcod=unique(stm[txtype=='mRNA']$txid)
-#  ltcod=unique(ltm[txtype=='mRNA']$txid)
-#  mtnc=unique(mtm[txtype!='mRNA']$txid)
-#  stnc=unique(stm[txtype!='mRNA']$txid)
-#  ltnc=unique(ltm[txtype!='mRNA']$txid)
-
-  #snames=c("Long", "Short", "Hybrid")
-
-  #s3 <- list(ltcod, stcod, mtcod)
-  #vcod <- drawVenn(s3, snames, "coding")
-  
-  #s3 <- list(ltnc, stnc, mtnc)
-  #vncod <- drawVenn(s3, snames, "non-coding")
-
-  #s3 <- list(ltpred, stpred, mtpred)
-  #vpred <- drawVenn(s3, snames, "predicted")
-  
-  #ag <- arrangeGrob(grobs=list(vcod, vncod, vpred), nrow=1, ncol=3)
-  
-  #ggsave(ag, file="my_plot0.svg", width=6.6, height=2, device="svg")
-  
- #stop("stop here for now")  
   dtc <- rbindlist(list(sd$tc[, assembly:='Short'], ld$tc[, assembly:='Long'], md$tc[, assembly:='Hybrid']))
   dtc$assembly <- factor(dtc$assembly, levels=c('Long', 'Short', 'Hybrid'))
   dtc[, yp:=cumsum(count), by=.(assembly, coding)]
@@ -145,13 +116,13 @@ genbarPlots <- function(files=NULL, startLetter='A') {
   #dtc[, cvar:=ifelse(predicted=='theoretical', coding, as.character(assembly)) ]
   dtc[, cvar:=ifelse(predicted=='theoretical', predicted, as.character(assembly)) ]
   dtc$cvar <- factor(dtc$cvar, levels=c('theoretical', 'Long', 'Short', 'Hybrid'))
-  ylim=c(0, max(dtc$yp)+3000)
+  ylim=c(0, max(dtc$yp)+2000)
   #colors=c('Long'="#b4bafd", 'Short'= "#ff9b9b", 'Hybrid'="#d9aff0", 'non-coding'="#b0e8b0", 'theoretical'="#f0f070")
   #colors=c('Long'="#b4bafd", 'Short'= "#ff9b9b", 'Hybrid'="#d9aff0", 'theoretical'="#f0f070")  "#70e070")
   colors=c('theoretical'="#a0b0a0", 'Long'="#4040FF", 'Short'= "#FF4040", 'Hybrid'="#A040A0")
   gg <- ggplot(dtc[order(assembly, coding, -count)], aes(fill=cvar, y=count, x=coding)) +
     geom_bar(position="stack", stat="identity", width = 0.8) + # ggtitle("protein coding status")+
-    scale_fill_manual(values=colors, labels = c("model RefSeq", "Long (known RefSeq)", "Short (known RefSeq)", "Hybrid (known RefSeq)")) +
+    scale_fill_manual(values=colors, labels = c("  RefSeq predicted           ", "", "", "  RefSeq curated")) +
     facet_grid(~ assembly) +
     #geom_label(data=subset(dmall, yl>0), aes(label=yp, y=yl, fill=cvar,  hjust=hj), 
     #           label.size=NA, vjust=0.4, color="black", size=3.2, show.legend = F)+
@@ -159,12 +130,21 @@ genbarPlots <- function(files=NULL, startLetter='A') {
       scale_color_manual(guide="none")+
     coord_cartesian(ylim = ylim) +
     scale_y_continuous(expand = expansion(add=c(0,0)), breaks=seq(0, 20000, 5000)) +
-    theme_bw() + xlab(NULL) + ylab('transcripts') +
-    theme( panel.border = element_blank(), 
-          axis.line = element_line(colour = "gray80"),
-          panel.grid.minor = element_blank(), legend.title = element_blank(),
-          strip.background = element_rect(color="white", fill="white", size=1.5)
-     )
+    theme_bw() +xlab(NULL) + ylab('transcripts')
+  bgcol="#F8F8F8"
+  if (showLegend) {
+    gg <- gg+theme( panel.border = element_blank(), 
+          axis.line = element_line(colour = "gray80"), legend.key.size = unit(1,"line"),
+          panel.background = element_rect(fill=bgcol), strip.text.x = element_text(size=11, face="bold"),
+          panel.grid.minor = element_blank(), legend.position = "bottom", legend.title = element_blank(),
+          strip.background = element_rect(color=bgcol, fill=bgcol, size=1.5), legend.spacing.x = unit(0.04, 'in') )
+  } else {
+    gg <- gg+theme( panel.border = element_blank(), 
+          axis.line = element_line(colour = "gray80"), strip.text.x = element_text(size=11, face="bold"),
+          panel.background = element_rect(fill=bgcol),
+          panel.grid.minor = element_blank(), legend.position = "none", legend.title = element_blank(),
+          strip.background = element_rect(color=bgcol, fill=bgcol, size=1.5) )
+  }
 }
 ```
 
@@ -195,7 +175,7 @@ genbarPlots <- function(files=NULL, startLetter='A') {
   dmall$hj <- 0.5
   dmall$yl <- dmall$yp
   
-  ylim=c(0, max(dmall$yl)+2000)
+  ylim=c(0, max(dmall$yl)+1000)
   #dmall[ type=='predicted' & ! cvar %in% c('nc','pred'), yl:=0]
   #dmall[ type=='non-coding' & ! cvar %in% c('nc','pred'), yl:=yl-2000]
   #dmall[ type=='non-coding' & ! cvar %in% c('nc','pred'), hj:=-0.34]
@@ -258,19 +238,21 @@ g1 <- genbarPlots(tmapfiles)
 #ggsave(g1, file="1_ggarr.svg", width=6.6, height=4.2, device="svg")
 
 
-g2 <- genbarPlots(c('all_merged_short.tmap', 'all_merged_long.tmap', 'all_merged_mix.tmap'), startLetter='E')
+g2 <- genbarPlots(c('all_merged_short.tmap', 'all_merged_long.tmap', 'all_merged_mix.tmap'), F)
 
 #ggsave(g2, file="2_ggarr.svg", width=6.6, height=4.2, device="svg")
 
 
-fig <- ggarrange(g1, g2, labels=c("A", "B"), ncol=1, nrow = 2)+theme(plot.margin = margin(t=0.4, r=1, l=1, unit="cm"))
+fig <- ggarrange(g1, g2, labels=c("A", "B"), ncol=1, nrow = 2, heights=c(1.1, 1)) +
+  theme(plot.margin = margin(t=0.4, r=0, l=0, unit="cm"))
 
 
-ggsave(fig, file="fig6_pred_nc.svg", width=8.2, height = 4.2, device="svg")
+ggsave(fig, file="fig6_pred_nc.svg", width=5.2, height = 6.2, device="svg")
 
 #fig <- ggarrange(g1$gpred, g1$gcod, g2$gpred, g2$gcod, labels=c("A", "B", "C", "D"),
 #                 vjust = 0.3, ncol=2, nrow = 2)+theme(plot.margin = margin(t=0.4, unit="cm"))
 fig
+
 
 ```
 

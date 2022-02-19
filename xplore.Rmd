@@ -247,7 +247,7 @@ fig <- ggarrange(g1, g2, labels=c("A", "B"), ncol=1, nrow = 2, heights=c(1.1, 1)
   theme(plot.margin = margin(t=0.4, r=0, l=0, unit="cm"))
 
 
-ggsave(fig, file="fig6_pred_nc.svg", width=5.2, height = 6.2, device="svg")
+ggsave(fig, file="fig7_pred_nc.svg", width=5.2, height = 6.2, device="svg")
 
 #fig <- ggarrange(g1$gpred, g1$gcod, g2$gpred, g2$gcod, labels=c("A", "B", "C", "D"),
 #                 vjust = 0.3, ncol=2, nrow = 2)+theme(plot.margin = margin(t=0.4, unit="cm"))

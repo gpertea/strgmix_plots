@@ -10,8 +10,8 @@ library(data.table)
 library(ggplot2)
 library(gridExtra)
 library(ggpubr)
-library(VennDiagram)
-#library(eulerr)
+#library(VennDiagram)
+
 ```
 
 
@@ -46,7 +46,9 @@ loadtmap <- function (file=NULL) {
                          
   list(tmap=tmap, tnum=tnum, tcod=tcod, tpred=tpred)
 }
+```
 
+```{r}
 drawVenn <- function(s3, names=NULL, title=NULL) {
   if (!is.null(names)) names(s3) <- names
   #myCol <- c("#ABB5E890", "#E8ABB590", "#E280E290")
@@ -91,10 +93,10 @@ drawVenn <- function(s3, names=NULL, title=NULL) {
 ```
 
 
-
 ```{r}
 #must be in this order: short, long, mix
 files <- c('SRR16071313_short.tmap', 'SRR16071311_long.tmap', 'SRR16071313_SRR16071311_mix.tmap')
+startLetter='A'
 genbarPlots <- function(files=NULL, startLetter='A') {
   sd <- loadtmap(files[1])
   ld <- loadtmap(files[2])
@@ -103,37 +105,34 @@ genbarPlots <- function(files=NULL, startLetter='A') {
   ltm <- ld$tmap[class_code=='=']
   mtm <- md$tmap[class_code=='=']
   
-  mtpred=unique(mtm[predicted==T]$txid)
-  stpred=unique(stm[predicted==T]$txid)
-  ltpred=unique(ltm[predicted==T]$txid)
-  mtcod=unique(mtm[txtype=='mRNA']$txid)
-  stcod=unique(stm[txtype=='mRNA']$txid)
-  ltcod=unique(ltm[txtype=='mRNA']$txid)
-  mtnc=unique(mtm[txtype!='mRNA']$txid)
-  stnc=unique(stm[txtype!='mRNA']$txid)
-  ltnc=unique(ltm[txtype!='mRNA']$txid)
+#  mtpred=unique(mtm[predicted==T]$txid)
+#  stpred=unique(stm[predicted==T]$txid)
+#  ltpred=unique(ltm[predicted==T]$txid)
+#  mtcod=unique(mtm[txtype=='mRNA']$txid)
+#  stcod=unique(stm[txtype=='mRNA']$txid)
+#  ltcod=unique(ltm[txtype=='mRNA']$txid)
+#  mtnc=unique(mtm[txtype!='mRNA']$txid)
+#  stnc=unique(stm[txtype!='mRNA']$txid)
+#  ltnc=unique(ltm[txtype!='mRNA']$txid)
 
-  #library(RColorBrewer)
-  #myCol <- brewer.pal(3, "Pastel2")
-  #rm(overrideTriple)
-  snames=c("Long", "Short", "Hybrid")
-  #s3 <- list(unique(ltm$txid), unique(stm$txid), unique(mtm$txid))
-  #vall <- drawVenn(s3, snames)
+  #snames=c("Long", "Short", "Hybrid")
 
-  s3 <- list(ltcod, stcod, mtcod)
-  vcod <- drawVenn(s3, snames, "coding")
+  #s3 <- list(ltcod, stcod, mtcod)
+  #vcod <- drawVenn(s3, snames, "coding")
   
-  s3 <- list(ltnc, stnc, mtnc)
-  vncod <- drawVenn(s3, snames, "non-coding")
+  #s3 <- list(ltnc, stnc, mtnc)
+  #vncod <- drawVenn(s3, snames, "non-coding")
 
-  s3 <- list(ltpred, stpred, mtpred)
-  vpred <- drawVenn(s3, snames, "predicted")
-  ag <- arrangeGrob(grobs=list(vcod, vncod, vpred), nrow=1, ncol=3)
-  #grid.draw(ag) 
-  ggsave(ag, file="my_plot0.svg", width=6.6, height=2, device="svg")
+  #s3 <- list(ltpred, stpred, mtpred)
+  #vpred <- drawVenn(s3, snames, "predicted")
+  
+  #ag <- arrangeGrob(grobs=list(vcod, vncod, vpred), nrow=1, ncol=3)
+  
+  #ggsave(ag, file="my_plot0.svg", width=6.6, height=2, device="svg")
   
  #stop("stop here for now")  
   dpred <- rbindlist(list(sd$tpred[, assembly:='Short'], ld$tpred[, assembly:='Long'], md$tpred[, assembly:='Hybrid']))
+  
   dpred$assembly <- factor(dpred$assembly, levels=c('Long','Short', 'Hybrid'))
   dpred[, cvar:=paste0(substr(assembly, start=1, stop=1), ifelse(predicted, 'T', 'F')) ]
   dpred[order(count), yp:=cumsum(count), by=assembly] #[predicted==F, yp:=yp-600]
@@ -143,7 +142,7 @@ genbarPlots <- function(files=NULL, startLetter='A') {
   dcod[, cvar:=paste0(substr(assembly, start=1, stop=1), ifelse(coding, 'F', 'T')) ]
   dcod[order(count), yp:=cumsum(count), by=assembly]
   
-  #ylim=c(0, 28000)
+ 
   
   dmcod <-  copy(dcod)
   setnames(dmcod, 'coding', 'status')
@@ -157,28 +156,30 @@ genbarPlots <- function(files=NULL, startLetter='A') {
   dmall$cvar <- factor(dmall$cvar, levels=c('LF', 'SF', 'HF', 'nc', 'pred' ))
   dmall$hj <- 0.5
   dmall$yl <- dmall$yp
-  dmall[ type=='predicted' & ! cvar %in% c('nc','pred'), yl:=0]
-  dmall[ type=='non-coding' & ! cvar %in% c('nc','pred'), yl:=yl-2000]
-  dmall[ type=='non-coding' & ! cvar %in% c('nc','pred'), hj:=-0.34]
+  
+  ylim=c(0, max(dmall$yl)+2000)
+  #dmall[ type=='predicted' & ! cvar %in% c('nc','pred'), yl:=0]
+  #dmall[ type=='non-coding' & ! cvar %in% c('nc','pred'), yl:=yl-2000]
+  #dmall[ type=='non-coding' & ! cvar %in% c('nc','pred'), hj:=-0.34]
     
-    
+  colors=c('LF'="#b4bafd", 'SF'= "#ff9b9b", 'HF'="#d9aff0", 'nc'="#b0e8b0", 'pred'="#f0f070")
   #colors=c('LF'="#9090ff", 'SF'= "#ff9090", 'HF'="#ff70ff", 'nc'="#b6d864", 'pred'="#f4e24f")
   #colors=c('LF'="#9090ff", 'SF'= "#ff7B75", 'HF'="#ef70ff", 'nc'="#b6d864", 'pred'="#f4e24f")
-  colors=c('LF'="#b4bafd", 'SF'= "#ff9b9b", 'HF'="#d9aff0", 'nc'="#b0e8b0", 'pred'="#f0f070")
     #colors=c('SF'= "#e34031", 'LF'="#3758f3", 'HF'="#c062c0", 'nc'="#674a5f", 'pred'="#3a722c")
     #colors=c('SF'= "#e34031", 'LF'="#3758f3", 'HF'="#c062c0", 'nc'="#5a5a5a", 'pred'="#5a924c")
     
   #gcod <- 
     #ggplot(dcod, aes(fill=cvar, y=count, x=assembly)) +
  gg <-     
-    ggplot(dmall[order(yp)], aes(fill=cvar, y=count, x=type)) +
-    geom_bar(position="stack", stat="identity", width = 1) + # ggtitle("protein coding status")+
+  ggplot(dmall[order(yp)], aes(fill=cvar, y=count, x=type)) +
+    geom_bar(position="stack", stat="identity", width = 0.8) + # ggtitle("protein coding status")+
     scale_fill_manual(values=colors, labels = c("Long", "Short", "Hybrid", "non-coding", "predicted")) +
     facet_grid(~ assembly) +
-    geom_label(data=subset(dmall, yl>0), aes(label=yp, y=yl, fill=cvar,  hjust=hj), 
-               label.size=NA, vjust=0.4, color="black", size=3.2, show.legend = F)+
+    #geom_label(data=subset(dmall, yl>0), aes(label=yp, y=yl, fill=cvar,  hjust=hj), 
+    #           label.size=NA, vjust=0.4, color="black", size=3.2, show.legend = F)+
+    geom_text(aes(label=yp, y=yl), vjust=-0.4) +
       scale_color_manual(guide="none")+
-    #coord_cartesian(ylim = ylim) +
+    coord_cartesian(ylim = ylim) +
     scale_y_continuous(expand = expansion(add=c(0,0)), breaks=seq(0, 20000, 5000)) +
     theme_bw() + xlab(NULL) + ylab('transcripts') +
     theme( panel.border = element_blank(), 
@@ -186,22 +187,23 @@ genbarPlots <- function(files=NULL, startLetter='A') {
           panel.grid.minor = element_blank(), legend.title = element_blank(),
           strip.background = element_rect(color="white", fill="white", size=1.5)
      )
+ 
  ## output should be 596x188 px, i.e. 8.27 x 2.61 in
  #gg    
  #ggsave(gg, file="my_plot_chart.svg", width=6.6, height=2.2, device="svg")
- l=as.numeric(charToRaw(startLetter))+1
- vlabels=c(rawToChar(as.raw(l)), rawToChar(as.raw(l+1)), rawToChar(as.raw(l+2)))
- vnds <- ggarrange(vcod, vncod, vpred, labels=vlabels, vjust=1.4, ncol=3, nrow=1)
- if (startLetter=='A') 
-    return(ggarrange(gg, vnds, labels=startLetter, vjust=1.4, ncol=1, nrow=2, widths=c(1,0.5)))
+ #l=as.numeric(charToRaw(startLetter))+1
+ #vlabels=c(rawToChar(as.raw(l)), rawToChar(as.raw(l+1)), rawToChar(as.raw(l+2)))
+ #vnds <- ggarrange(vcod, vncod, vpred, labels=vlabels, vjust=1.4, ncol=3, nrow=1)
+ #if (startLetter=='A') 
+ #    return(ggarrange(gg, vnds, labels=startLetter, vjust=1.4, ncol=1, nrow=2, widths=c(1,0.5)))
 
  #ggall <- 
- ggarrange(linesGrob(x=c(0.01, 0.99), y=c(0.99, 0.99), gp=gpar(col="gray60", lwd=0.4)), 
-        ggarrange(gg, vnds, labels=startLetter, vjust=1.4, ncol=1, nrow=2, widths=c(1,0.5)),
-        nrow=2, ncol=1, heights=c(0.01, 1))
+ #ggarrange(linesGrob(x=c(0.01, 0.99), y=c(0.99, 0.99), gp=gpar(col="gray60", lwd=0.4)), 
+#        ggarrange(gg, vnds, labels=startLetter, vjust=1.4, ncol=1, nrow=2, widths=c(1,0.5)),
+#        nrow=2, ncol=1, heights=c(0.01, 1))
  
  #ggsave(ggall, file="0_ggarr.svg", width=6.6, height=4.2, device="svg")
- 
+ return(gg)
 }
 ```
 
@@ -223,10 +225,10 @@ g2 <- genbarPlots(c('all_merged_short.tmap', 'all_merged_long.tmap', 'all_merged
 #ggsave(g2, file="2_ggarr.svg", width=6.6, height=4.2, device="svg")
 
 
-fig <- ggarrange(g1, g2, ncol=1, nrow = 2)+theme(plot.margin = margin(t=0.4, r=1, l=1, unit="cm"))
+fig <- ggarrange(g1, g2, labels=c("A", "B"), ncol=1, nrow = 2)+theme(plot.margin = margin(t=0.4, r=1, l=1, unit="cm"))
 
 
-ggsave(fig, file="fig6_pred_nc.svg", width=8.2, height = 8.4, device="svg")
+ggsave(fig, file="fig6_pred_nc.svg", width=8.2, height = 4.2, device="svg")
 
 #fig <- ggarrange(g1$gpred, g1$gcod, g2$gpred, g2$gcod, labels=c("A", "B", "C", "D"),
 #                 vjust = 0.3, ncol=2, nrow = 2)+theme(plot.margin = margin(t=0.4, unit="cm"))

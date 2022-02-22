@@ -150,7 +150,7 @@
 <polyline points='47.51,147.52 50.25,147.52 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
 <polyline points='47.51,105.27 50.25,105.27 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
 <polyline points='47.51,63.03 50.25,63.03 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
-<text transform='translate(12.64,128.22) rotate(-90)' text-anchor='middle' style='font-size: 10.00px; font-family: "Arial";' textLength='134.03px' lengthAdjust='spacingAndGlyphs'># Matching RefSeq transcripts</text>
+<text transform='translate(12.64,128.22) rotate(-90)' text-anchor='middle' style='font-size: 10.00px; font-family: "Arial";' textLength='156.84px' lengthAdjust='spacingAndGlyphs'># Annotated Transcripts Assembled</text>
 <rect x='73.64' y='257.16' width='257.49' height='25.36' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 <rect x='82.00' y='262.64' width='14.40' height='14.40' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 <rect x='82.70' y='263.35' width='12.98' height='12.98' style='stroke-width: 1.07; stroke: none; stroke-linecap: square; stroke-linejoin: miter; fill: #A0B0A0;' />
